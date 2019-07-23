@@ -1,0 +1,24 @@
+Package: SEQUOIA
+Type: Package
+Title: Galerie de fonctions utiles aux processus SEQUOIA
+Version: 0.1.60
+Author: Matthieu CHEVEREAU
+Maintainer: Matthieu CHEVEREA <matthieuchevereau@yahoo.fr>
+Description: Ce package contient un ensemble de fonctions utiles a la creation d'une cartographie forestiere ponctuelle
+LazyData: false
+Imports: data.table, dplyr, plyr, foreign, gdalUtils, lwgeom, osmdata,
+        R.utils, raster, RCurl, readxl, rlang, rlist, rvest, sf,
+        smoothr, stringr, svDialogs, tcltk, tidyverse, openxlsx, XML,
+        xml2, units, measurements, nngeo, sp, googledrive
+Depend: data.table, dplyr, plyr, foreign, gdalUtils, lwgeom, osmdata,
+        R.utils, raster, RCurl, readxl, rlang, rlist, rvest, sf,
+        smoothr, stringr, svDialogs, tcltk, tidyverse, openxlsx, XML,
+        xml2, units, measurements, nngeo, sp, googledrive
+License: Package developpe sous RStudio Version 1.1.442 . Tous droits
+        reserves. Usage reserve
+Encoding: UTF-8
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 6.1.0
+NeedsCompilation: no
+Packaged: 2019-06-27 17:14:12 UTC; Matthieu

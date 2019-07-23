@@ -1,0 +1,207 @@
+```{r ini, include=FALSE, echo=FALSE, message=FALSE}
+load("C:/Users/Utilisateur/Documents/PREPA-FICHE.Rdata")
+title <- paste0("FICHE CLIMATOLOGIQUE - ", NAME)
+```
+
+---
+title: "`r title`"
+author: "Matthieu CHEVEREAU"
+output:   
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r SEQUOIA, include=FALSE, echo=FALSE, message=FALSE}
+# Lancement des library
+if (!require("tcltk")) {install.packages("tcltk")}
+if (!require("sf")) {install.packages("sf")}
+if (!require("stringr")) {install.packages("stringr")}
+if (!require("dplyr")) {install.packages("dplyr")}
+if (!require("rlang")) {install.packages("tcltk")}
+if (!require("SEQUOIA")) {install.packages("SEQUOIA")}
+
+SEQUOIA::CLIMonSHP(repshp, repRdata)
+```
+Cette fiche fait synthèse des éléments climatologiques disponibles pour la propriété.
+
+# Localisation
+```{r Localisation, echo=FALSE, message=FALSE}
+    SER_CODE <- SER_df[1,1]   
+    SER_NOM  <- SER_df[1,2]
+    RFN_CODE <- RFN_df[1,1]
+    RFN_NOM  <- RFN_df[1,2]
+```
+La propriété est située dans la sylvoécorégion `r SER_NOM` correspondante à l'ancienne région forestière `r RFN_NOM`.  
+**Sylvoécorégion** : `r SER_CODE` - `r SER_NOM`  
+**Région forestière** : `r RFN_CODE` - `r RFN_NOM`
+
+# Données climatiques de Météo-France 
+La station Météo France la plus proche de la propriété est la station de `r STATION` située à `r DISTANCE` km à une altitude de `r ALTITUDE` m.  
+Les informations ci-dessous correspondantes aux normales et records disponibles pour cette station. `r STAT`
+
+```{r Météo-France, echo=FALSE, results='asis', fig.width=10}
+MOIS <- c("SOURCE", colnames(METEOFRANCE_df)[3:15])
+
+VAR <- c("Température maximale (Moyenne en °C)", 
+         "Température moyenne (Moyenne en °C)",
+         "Température minimale (Moyenne en °C)",
+         "Précipitations : Hauteur moyenne mensuelle (mm)",
+         "Durée d'insolation (Moyenne en heures)")
+
+for (i in 1:length(VAR)){
+  df1 <- METEOFRANCE_df%>%
+    filter(VARIABLE %in% VAR[i])
+  if (nrow(df1)>0){
+    DETAIL <- df1[1,2]
+    df2 <- df1[1,2:15] %>%
+      mutate(DETAIL=STATION)
+    colnames(df2) <- MOIS
+    print(knitr::kable(df2, caption = VAR[i], align = "l"))
+    cat("\n")
+  }
+}
+
+df1 <- METEOFRANCE_df%>%
+    filter(VARIABLE %in% "Nombre moyen de jours avec",
+           DETAIL %in% "Tn <=   0°C ")
+if (nrow(df1)>0){
+    df2 <- df1[1,2:15] %>%
+      mutate(DETAIL=STATION)
+    colnames(df2) <- MOIS
+    print(knitr::kable(df2, caption = "Nombre moyen de jours de gel (nbr/mois)", align = "l"))
+    cat("\n")
+}
+
+VAR <- c("Brouillard  ", 
+         "Orage       ",
+         "Grêle       ",
+         "Neige       ")
+df1 <- METEOFRANCE_df%>%
+    filter(VARIABLE %in% VAR)
+if (nrow(df1)>0){
+    df2 <- df1 %>%
+      mutate(DETAIL = VARIABLE,
+             VARIABLE=STATION)
+    colnames(df2) <- c("SOURCE", "DETAILS", colnames(METEOFRANCE_df)[3:15])
+    print(knitr::kable(df2, caption = "Nombre moyen de jours avec :", align = "l"))
+    cat("\n")
+}
+
+```
+ 
+# Données climatiques d'AURELHY
+Les données climatiques Aurelhy (© Météo-France, 2001) ont été obtenues à partir de jeux de données ponctuelles des stations Météo-France qui ont été spatialisées en utilisant des modèles statistiques élaborés à l’aide de variables topographiques.  
+
+Les informations ci-dessous correspondantes aux normales déterminés par le modèle Aurelhy sur une étendue de 2,5 km autour de la forêt pour la période 1981-2010.
+
+```{r Aurelhy, echo=FALSE, results='asis', fig.width=10}
+extractAU <- function(x, n) { # Fonction d'extraction des valeurs
+  x <- as.data.frame(x)[,-length(x)]
+  var <-  data.frame(VAR = c("Pm", "Tn", "Tx", "Nbjgel"), COL = c(3,15,27,39))
+  var <- var[n,2]
+  df <- x[,c(var:(var+11))]
+  r <- nrow(df)+1
+  for (a in 1:length(df)){ 
+    df[r,a] <- round(mean(df[c(1:r-1),a]),1)
+  }
+  if ((n==1)||(n==4)){
+    df <- cbind(df[r,], round(sum(as.numeric(df[r,])),1))
+  } else {
+    df <- cbind(df[r,], round(mean(as.numeric(df[r,])),1))
+  }
+  
+  df <- cbind(a = "AURELHY", df)
+  colnames(df) <- MOIS
+  rownames(df) <- NULL
+  return(df)
+}
+
+AU_Tn <- extractAU(AURELHY_df, 2)
+AU_Tx <- extractAU(AURELHY_df, 3)
+
+df <- rbind(AU_Tn, AU_Tx)
+for (a in 2:length(df)){ df[3,a] <- round(mean(df[c(1:2),a]),1)}
+df[3,1] <- "AURELHY"
+df <- df[3,]
+rownames(df) <- NULL
+AU_Tm <- df
+
+print(knitr::kable(AU_Tx, caption = "Température maximale (Moyenne en °C)", align = "l"), row.names = FALSE)
+cat("\n")
+print(knitr::kable(AU_Tm, caption = "Température moyenne (Moyenne en °C)", align = "l"), row.names = FALSE)
+cat("\n")
+print(knitr::kable(AU_Tn, caption = "Température minimale (Moyenne en °C)", align = "l"), row.names = FALSE)
+cat("\n")
+
+AU_Pm <- extractAU(AURELHY_df, 1)
+print(knitr::kable(AU_Pm, caption = "Précipitations : Hauteur moyenne mensuelle (mm)", align = "l"), row.names = NULL)
+cat("\n")
+
+AU_Ge <- extractAU(AURELHY_df, 4)
+print(knitr::kable(AU_Ge, caption = "Nombre moyen de jours de gel (nbr/mois)", align = "l"), row.names = FALSE)
+cat("\n")
+```
+
+
+```{r Ombro, echo=FALSE, fig.width=8, fig.height=5, fig.cap="Diagramme ombrothermique de la propriété (AURELHY 1981-2010)"}
+# Création des données ombrothermique
+prep <- data.table::transpose(AU_Pm[1, 2:13])
+temp <- data.table::transpose(AU_Tm[1, 2:13])
+mois <- data.frame(mois = MOIS[2:13])
+df <- data.frame(mois, prep, temp)
+colnames(df) <- c("MOIS", "PREP", "TEMP")
+
+ombro <- function(df){
+  ylim1=round(max(df$PREP)+20,digits=-1)
+  
+  par(mar=c(4,4,3,6))
+  BPLOT <- barplot(df$PREP, xlim=c(0,12), ylim=c(0,ylim1), axes=F, names.arg= df$MOIS, las=2,
+                   width=0.8, space=0.2, col="darkcyan")
+  axis(2, col="black", at=seq(0, ylim1, by=10))
+  mtext("Précipitations (mm)", side=2, line=2, cex=1)
+  
+  par(new=TRUE,mar=c(4,4,3,6))
+  LPLOT <- plot(BPLOT, df$TEMP, col="darkred", type="o",
+                lwd=2,pch=16,axes=F,ylab="",xlab="",ylim=c(0,ylim1/2),
+                xlim=c(0,length(df$TEMP)),yaxs ="i")
+  axis(4, col.axis="darkred", col="darkred", at=seq(0,ylim1/2, by=10))
+  mtext("Précipitations (mm)", side=2, line=2, cex=1)
+  mtext("Température (°C)", side=4, col="darkred", line=2, cex=1)
+  box();grid()
+  
+  AURELHY_PLOT_OBJ <- recordPlot()
+  
+  return(AURELHY_PLOT_OBJ) 
+}
+ombro(df)
+
+
+```
+
+# Données météorologiques Digitalis
+Les données climatiques Digitalis ont été obtenues à partir de jeux de données ponctuelles des stations Météo-France qui ont été spatialisées en utilisant des modèles statistiques. Ces modèles ont été élaborés à l’aide de variables topographiques, géographiques et d’occupation dominante du sol, dont la distribution spatiale est connue de façon relativement précise.  
+  
+Les informations ci-dessous correspondantes aux normales annuelles déterminés par le modèle Digitalis sur une étendue de 2,5 km autour de la forêt pour la période 1961-1990. Les données mensuelles ne sont pas disponibles.
+  
+```{r Digitalis, echo=FALSE, results='asis', fig.width=10}
+df <- data.frame(VARIABLE=c("Température moyenne (Moyenne en °C)", "Précipitations : Hauteur moyenne mensuelle (mm)"),VALUE=c(round(DIGITALIS_df[11,2],1),round(DIGITALIS_df[5,2],1)))
+colnames(df) <- c("VARIABLE", "VALUE")
+
+
+print(knitr::kable(df, caption = "Données Digitalis 1961-1990", align = "l"))
+cat("\n")
+vers <- packageVersion("SEQUOIA")
+cat("  \n")
+```
+    
+    
+```{r, echo=FALSE}
+cat("  \n")
+```
+  
+  
+  
+
+* * *  
+*Cette fiche a été générée automatiquement le `r format(Sys.time(), '%d %B %Y')`  par R_SEQUOIA V.  `r vers`*
